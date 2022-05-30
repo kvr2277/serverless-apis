@@ -1,0 +1,39 @@
+service: serverless-apis
+
+plugins:
+- serverless-offline
+- serverless-domain-manager
+- serverless-prune-plugin
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  stage: ${opt:stage,'local'}
+  timeout: 15 #seconds. API GAteway has max timeout of 10 secs only
+  logRetentionInDays: 5 # Set the default RetentionInDays for a CloudWatch LogGroup
+  environment: ${file(env.yml):${self:provider.stage}}
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  customDomain:
+    domainName: ${self:custom.domains.${self:custom.stage}}
+    basePath: 'demo'
+    createRoute53Record: true
+  domains:
+    dev: dapi.vinodaws.com
+    local: localhost
+  prune:
+    automatic: true
+    includeLayers: true
+    number: ${file(env.yml):${self:provider.stage}.PRUNE_VERSIONS_TO_KEEP}
+
+# add 5 function for CURD operation
+functions: 
+  getHello:
+    handler: handler.hello
+    events:
+      - http: 
+          path: hello
+          method: get
+          cors: true
